@@ -41,7 +41,7 @@ def create_draft(request: Request, review_id: int, db: Session = Depends(get_db)
     db.refresh(draft)
 
     return templates.TemplateResponse(
-        "_draft_partial.html", {"request": request, "review": review, "draft": draft}
+        request, "_draft_partial.html", {"review": review, "draft": draft}
     )
 
 

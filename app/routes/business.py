@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/setup")
 def setup_form(request: Request):
-    return templates.TemplateResponse("setup_business.html", {"request": request, "errors": []})
+    return templates.TemplateResponse(request, "setup_business.html", {"errors": []})
 
 
 @router.post("/businesses")
@@ -28,9 +28,9 @@ def create_business(
         data = BusinessCreate(name=name, business_type=business_type, owner_name=owner_name)
     except ValidationError as exc:
         return templates.TemplateResponse(
+            request,
             "setup_business.html",
             {
-                "request": request,
                 "errors": [e["msg"] for e in exc.errors()],
                 "form": {"name": name, "business_type": business_type, "owner_name": owner_name},
             },
@@ -48,7 +48,7 @@ def create_business(
 def voice_setup_form(request: Request, business_id: int, db: Session = Depends(get_db)):
     business = _get_business_or_404(db, business_id)
     return templates.TemplateResponse(
-        "setup_voice.html", {"request": request, "business": business, "errors": []}
+        request, "setup_voice.html", {"business": business, "errors": []}
     )
 
 
@@ -74,8 +74,9 @@ def save_voice_profile(
         )
     except ValidationError as exc:
         return templates.TemplateResponse(
+            request,
             "setup_voice.html",
-            {"request": request, "business": business, "errors": [e["msg"] for e in exc.errors()]},
+            {"business": business, "errors": [e["msg"] for e in exc.errors()]},
             status_code=422,
         )
 

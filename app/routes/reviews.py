@@ -24,7 +24,7 @@ def dashboard(request: Request, business_id: int, db: Session = Depends(get_db))
         .all()
     )
     return templates.TemplateResponse(
-        "dashboard.html", {"request": request, "business": business, "reviews": reviews}
+        request, "dashboard.html", {"business": business, "reviews": reviews}
     )
 
 
@@ -32,7 +32,7 @@ def dashboard(request: Request, business_id: int, db: Session = Depends(get_db))
 def import_form(request: Request, business_id: int, db: Session = Depends(get_db)):
     business = _get_business_or_404(db, business_id)
     return templates.TemplateResponse(
-        "import_reviews.html", {"request": request, "business": business, "errors": []}
+        request, "import_reviews.html", {"business": business, "errors": []}
     )
 
 
@@ -49,8 +49,9 @@ async def import_csv(
         reviews_data = CsvSource(content).fetch()
     except CsvSourceError as exc:
         return templates.TemplateResponse(
+            request,
             "import_reviews.html",
-            {"request": request, "business": business, "errors": [str(exc)]},
+            {"business": business, "errors": [str(exc)]},
             status_code=422,
         )
 
@@ -70,8 +71,9 @@ def import_manual(
         reviews_data = ManualSource(text).fetch()
     except ManualSourceError as exc:
         return templates.TemplateResponse(
+            request,
             "import_reviews.html",
-            {"request": request, "business": business, "errors": [str(exc)]},
+            {"business": business, "errors": [str(exc)]},
             status_code=422,
         )
 
