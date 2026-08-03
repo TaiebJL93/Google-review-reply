@@ -1,0 +1,107 @@
+:root {
+  color-scheme: light;
+  --ink: #1f2328;
+  --muted: #6b7280;
+  --border: #d8dce1;
+  --accent: #2563eb;
+  --bg: #fafafa;
+  --danger: #b91c1c;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.site-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: white;
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+h1 { font-size: 1.5rem; }
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 1rem 0 1.5rem;
+}
+
+label { font-weight: 600; font-size: 0.9rem; margin-top: 0.5rem; }
+
+input, select, textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+button, .button {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 0.5rem;
+}
+
+button:disabled { opacity: 0.6; cursor: default; }
+
+.errors { color: var(--danger); }
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-list { list-style: none; padding: 0; }
+
+.review-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: white;
+}
+
+.review-meta { display: flex; gap: 0.75rem; align-items: baseline; }
+.review-meta .rating { color: var(--accent); font-weight: 600; }
+.review-meta .date, .review-meta .rating { color: var(--muted); }
+
+.review-body { margin: 0.5rem 0; }
+
+.draft-content { width: 100%; margin-top: 0.5rem; }
+
+.draft-actions { display: flex; gap: 0.5rem; }
+.draft-actions button { margin-top: 0.5rem; }
+
+.error { color: var(--danger); }
+
+pre {
+  background: #f0f0f0;
+  padding: 0.75rem;
+  border-radius: 6px;
+  overflow-x: auto;
+}

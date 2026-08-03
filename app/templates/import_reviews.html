@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Import reviews — {{ business.name }}{% endblock %}
+{% block content %}
+<h1>Import reviews for {{ business.name }}</h1>
+
+{% if errors %}
+<ul class="errors">
+  {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+</ul>
+{% endif %}
+
+<section>
+  <h2>Upload a CSV</h2>
+  <p>Required columns: <code>author_name</code>, <code>rating</code>, <code>body</code>.
+     Optional: <code>review_date</code> (YYYY-MM-DD).</p>
+  <form method="post" action="/businesses/{{ business.id }}/import/csv" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".csv" required>
+    <button type="submit">Upload</button>
+  </form>
+</section>
+
+<section>
+  <h2>Or paste reviews</h2>
+  <p>Separate reviews with a blank line. Each review is: author name, then rating (1-5),
+     then the review body. Example:</p>
+  <pre>Jane Doe
+5
+Loved the espresso and the quick service!
+
+Sam Lee
+2
+Waited 30 minutes for a table with no apology.</pre>
+  <form method="post" action="/businesses/{{ business.id }}/import/manual">
+    <textarea name="text" rows="10"
+      placeholder="Jane Doe&#10;5&#10;Loved the espresso and the quick service!" required></textarea>
+    <button type="submit">Import</button>
+  </form>
+</section>
+{% endblock %}

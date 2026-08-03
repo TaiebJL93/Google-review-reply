@@ -1,0 +1,5 @@
+<textarea id="draft-content-{{ review.id }}" class="draft-content" rows="4">{{ review.draft.content }}</textarea>
+<div class="draft-actions">
+  <button type="button" data-copy-target="draft-content-{{ review.id }}">Copy</button>
+  <button type="button" data-draft-review-id="{{ review.id }}">Regenerate</button>
+</div>

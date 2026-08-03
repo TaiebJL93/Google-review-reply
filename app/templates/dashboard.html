@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ business.name }}{% endblock %}
+{% block content %}
+<div class="dashboard-header">
+  <h1>{{ business.name }}</h1>
+  <a href="/businesses/{{ business.id }}/import" class="button">Import reviews</a>
+</div>
+
+{% if not reviews %}
+<p>No reviews yet. <a href="/businesses/{{ business.id }}/import">Import some</a> to get started.</p>
+{% endif %}
+
+<ul class="review-list">
+  {% for review in reviews %}
+  <li class="review-card">
+    <div class="review-meta">
+      <strong>{{ review.author_name }}</strong>
+      <span class="rating">{{ review.rating }}/5</span>
+      {% if review.review_date %}<span class="date">{{ review.review_date }}</span>{% endif %}
+    </div>
+    <p class="review-body">{{ review.body }}</p>
+
+    <div id="draft-{{ review.id }}" class="draft-area">
+      {% if review.draft %}
+        {% include "_draft_partial.html" %}
+      {% else %}
+        <button type="button" data-draft-review-id="{{ review.id }}">Draft response</button>
+      {% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}
