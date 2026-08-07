@@ -6,3 +6,4 @@ python-multipart
 anthropic
 pytest
 httpx
+python-dotenv
