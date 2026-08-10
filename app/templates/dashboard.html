@@ -1,33 +1,58 @@
 {% extends "base.html" %}
+{% from "_macros.html" import stars, sentiment_badge %}
 {% block title %}Dashboard — {{ business.name }}{% endblock %}
+
+{% block header_extra %}
+<nav class="top-bar__nav">
+  <span class="top-bar__business">Signed in as <strong>{{ business.name }}</strong></span>
+  <a href="/businesses/{{ business.id }}/import" class="btn btn-primary btn-sm">Import reviews</a>
+</nav>
+{% endblock %}
+
 {% block content %}
-<div class="dashboard-header">
-  <h1>{{ business.name }}</h1>
-  <a href="/businesses/{{ business.id }}/import" class="button">Import reviews</a>
+<div class="page-head">
+  <h1>Reviews</h1>
+  <p class="page-head__sub">{{ reviews|length }} review{{ 's' if reviews|length != 1 else '' }} on file</p>
 </div>
 
 {% if not reviews %}
-<p>No reviews yet. <a href="/businesses/{{ business.id }}/import">Import some</a> to get started.</p>
-{% endif %}
-
+<div class="empty-state">
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 12.5v-7Z" stroke="currentColor" stroke-width="1.4"/>
+  </svg>
+  <h2>No reviews yet</h2>
+  <p>Import reviews from a CSV export or by pasting them in, and they'll show up here ready for a draft reply.</p>
+  <a href="/businesses/{{ business.id }}/import" class="btn btn-primary">Import reviews</a>
+</div>
+{% else %}
 <ul class="review-list">
   {% for review in reviews %}
-  <li class="review-card">
-    <div class="review-meta">
-      <strong>{{ review.author_name }}</strong>
-      <span class="rating">{{ review.rating }}/5</span>
-      {% if review.review_date %}<span class="date">{{ review.review_date }}</span>{% endif %}
+  <li class="review-card review-card--{{ 'positive' if review.rating >= 4 else ('mixed' if review.rating == 3 else 'negative') }}" style="--i: {{ loop.index0 }}">
+    <div class="review-card__top">
+      <div class="review-card__who">
+        <span class="avatar" aria-hidden="true">{{ review.author_name[0]|upper }}</span>
+        <div>
+          <p class="review-card__name">{{ review.author_name }}</p>
+          <div class="review-card__meta">
+            {{ stars(review.rating) }}
+            {{ sentiment_badge(review.rating) }}
+          </div>
+        </div>
+      </div>
+      {% if review.review_date %}<time class="review-card__date">{{ review.review_date }}</time>{% endif %}
     </div>
-    <p class="review-body">{{ review.body }}</p>
+
+    <p class="review-card__body">{{ review.body }}</p>
 
     <div id="draft-{{ review.id }}" class="draft-area">
       {% if review.draft %}
         {% include "_draft_partial.html" %}
       {% else %}
-        <button type="button" data-draft-review-id="{{ review.id }}">Draft response</button>
+        <button type="button" class="btn btn-primary" data-draft-review-id="{{ review.id }}">Draft response</button>
       {% endif %}
     </div>
   </li>
   {% endfor %}
 </ul>
+{% endif %}
 {% endblock %}

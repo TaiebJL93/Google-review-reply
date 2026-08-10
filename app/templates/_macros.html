@@ -1,0 +1,10 @@
+{% macro stars(rating) %}
+<span class="stars" aria-label="{{ rating }} out of 5 stars">{% for i in range(1, 6) %}<span class="star{{ ' star--filled' if i <= rating else '' }}" aria-hidden="true">&#9733;</span>{% endfor %}</span>
+{% endmacro %}
+
+{% macro sentiment_badge(rating) %}
+{% if rating >= 4 %}<span class="badge badge--positive">Positive</span>
+{% elif rating == 3 %}<span class="badge badge--mixed">Mixed</span>
+{% else %}<span class="badge badge--negative">Needs attention</span>
+{% endif %}
+{% endmacro %}

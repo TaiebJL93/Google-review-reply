@@ -1,35 +1,54 @@
 {% extends "base.html" %}
 {% block title %}Set your voice — ReviewReply{% endblock %}
 {% block content %}
-<h1>How should replies sound?</h1>
-<p>{{ business.name }} — this shapes every draft ReviewReply writes.</p>
+<div class="page-head">
+  <h1>How should replies sound?</h1>
+  <p class="page-head__sub">Step 2 of 2</p>
+</div>
 
-{% if errors %}
-<ul class="errors">
-  {% for error in errors %}<li>{{ error }}</li>{% endfor %}
-</ul>
-{% endif %}
+<div class="panel">
+  <p class="panel__intro">{{ business.name }} — this shapes every draft ReviewReply writes.</p>
 
-<form method="post" action="/businesses/{{ business.id }}/voice">
-  <label for="tone">Tone</label>
-  <select id="tone" name="tone" required>
-    <option value="warm">Warm</option>
-    <option value="professional">Professional</option>
-    <option value="casual">Casual</option>
-  </select>
+  {% if errors %}
+  <ul class="alert alert-error">
+    {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+  </ul>
+  {% endif %}
 
-  <label for="sign_off">Sign-off</label>
-  <input type="text" id="sign_off" name="sign_off" placeholder="e.g. Warm regards, Maria" required>
+  <form method="post" action="/businesses/{{ business.id }}/voice">
+    <div class="field">
+      <label for="tone">Tone</label>
+      <select id="tone" name="tone" required>
+        <option value="warm">Warm</option>
+        <option value="professional">Professional</option>
+        <option value="casual">Casual</option>
+      </select>
+    </div>
 
-  <label for="phrases_to_use">Phrases you like to use (comma-separated, optional)</label>
-  <input type="text" id="phrases_to_use" name="phrases_to_use">
+    <div class="field">
+      <label for="sign_off">Sign-off</label>
+      <input type="text" id="sign_off" name="sign_off" placeholder="e.g. Warm regards, Maria" required>
+    </div>
 
-  <label for="phrases_to_avoid">Phrases to avoid (comma-separated, optional)</label>
-  <input type="text" id="phrases_to_avoid" name="phrases_to_avoid">
+    <div class="field">
+      <label for="phrases_to_use">Phrases you like to use</label>
+      <input type="text" id="phrases_to_use" name="phrases_to_use">
+      <p class="field__hint">Comma-separated, optional.</p>
+    </div>
 
-  <label for="example_responses">Past responses you've written (one per line, up to 5, optional)</label>
-  <textarea id="example_responses" name="example_responses" rows="6"></textarea>
+    <div class="field">
+      <label for="phrases_to_avoid">Phrases to avoid</label>
+      <input type="text" id="phrases_to_avoid" name="phrases_to_avoid">
+      <p class="field__hint">Comma-separated, optional.</p>
+    </div>
 
-  <button type="submit">Save and continue</button>
-</form>
+    <div class="field">
+      <label for="example_responses">Past responses you've written</label>
+      <textarea id="example_responses" name="example_responses" rows="6"></textarea>
+      <p class="field__hint">One per line, up to 5, optional — these count more than the settings above.</p>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save and continue</button>
+  </form>
+</div>
 {% endblock %}
