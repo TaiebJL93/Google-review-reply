@@ -1,20 +1,20 @@
 from typing import List, Optional
 
-from anthropic import Anthropic
+from google import genai
+from google.genai import types
 
 from app.config import settings
 from app.models import Review, VoiceProfile
 
-MODEL = "claude-sonnet-5"
-MAX_TOKENS = 400
+MODEL = "gemini-3.6-flash"
 
-_client: Optional[Anthropic] = None
+_client: Optional[genai.Client] = None
 
 
-def _get_client() -> Anthropic:
+def _get_client() -> genai.Client:
     global _client
     if _client is None:
-        _client = Anthropic(api_key=settings.anthropic_api_key)
+        _client = genai.Client(api_key=settings.gemini_api_key)
     return _client
 
 
@@ -23,7 +23,7 @@ def build_prompt(
     voice_profile: VoiceProfile,
     recent_openings: Optional[List[str]] = None,
 ) -> dict:
-    """Pure function: builds the {system, messages} payload for the Anthropic call."""
+    """Pure function: builds the {system, messages} payload for the LLM call."""
     recent_openings = recent_openings or []
     return {
         "system": _build_system_prompt(voice_profile, recent_openings),
@@ -110,10 +110,9 @@ def generate_reply(
     recent_openings: Optional[List[str]] = None,
 ) -> str:
     prompt = build_prompt(review, voice_profile, recent_openings)
-    response = _get_client().messages.create(
+    response = _get_client().models.generate_content(
         model=MODEL,
-        max_tokens=MAX_TOKENS,
-        system=prompt["system"],
-        messages=prompt["messages"],
+        contents=prompt["messages"][0]["content"],
+        config=types.GenerateContentConfig(system_instruction=prompt["system"]),
     )
-    return response.content[0].text.strip()
+    return response.text.strip()
