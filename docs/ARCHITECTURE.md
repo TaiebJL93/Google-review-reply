@@ -5,11 +5,11 @@
 ```
 app/
   main.py          FastAPI app, mounts routers, creates tables on startup
-  config.py        Settings (env vars: ANTHROPIC_API_KEY, DATABASE_URL)
+  config.py        Settings (env vars: GEMINI_API_KEY, DATABASE_URL)
   database.py      SQLAlchemy engine/session setup
   models.py        ORM models: Business, VoiceProfile, Review, Draft
   schemas.py       Pydantic request/response models for form validation
-  generation.py    Prompt builder + Anthropic client wrapper
+  generation.py    Prompt builder + Gemini client wrapper
   routes/
     business.py    Business + voice profile setup routes
     reviews.py     Review import (CSV/paste) + dashboard routes
@@ -90,7 +90,7 @@ and simply overwrite.
    current draft text inline.
 4. **Draft generation**: `POST /reviews/{id}/draft` loads the `Review` and its
    business's `VoiceProfile`, calls `generation.build_prompt(review,
-   voice_profile, recent_openings)` to construct the Anthropic messages
+   voice_profile, recent_openings)` to construct the `{system, messages}`
    payload, sends it via `generation.generate_reply(...)`, and upserts the
    result into `Draft`. The route returns an HTML partial (for htmx-style
    in-place swap) containing the editable draft.
@@ -129,9 +129,16 @@ system-prompt boundary can prevent one from being generated):
 - Never invent facts about the customer's visit beyond what the review states.
 - 2–5 sentences.
 
-`generation.generate_reply` wraps the Anthropic Messages API call
-(`model="claude-sonnet-5"`) behind a single function so route tests can mock
-it entirely — no test in this repo makes a live network call.
+`generation.generate_reply` wraps the Gemini API call (`google-genai`,
+`model="gemini-3.6-flash"` — a free-tier Flash model, since Gemini's free
+tier no longer includes Pro models) behind a single function so route tests
+can mock it entirely — no test in this repo makes a live network call. The
+exact Flash model ID has already drifted once during this feature's
+implementation (`gemini-2.5-flash` → `gemini-3.6-flash`, as Google
+deprecated the former for new API keys); expect to need to update this
+again periodically — check
+[the models list](https://ai.google.dev/gemini-api/docs/models) if draft
+generation starts returning 404s.
 
 ## Review Source Adapters
 

@@ -3,7 +3,7 @@ uvicorn
 sqlalchemy
 jinja2
 python-multipart
-anthropic
+google-genai
 pytest
 httpx
 python-dotenv

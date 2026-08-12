@@ -16,8 +16,8 @@ pip install -r requirements.txt
 copy .env.example .env        # Windows; cp on macOS/Linux
 ```
 
-Edit `.env` and set `ANTHROPIC_API_KEY` to a real key from
-https://console.anthropic.com/.
+Edit `.env` and set `GEMINI_API_KEY` to a free key from
+https://aistudio.google.com/apikey.
 
 ## Run
 
