@@ -3,14 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#170C03">
   <title>{% block title %}ReviewReply{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header class="site-header">
-    <a href="/" class="brand">ReviewReply</a>
+  <header class="top-bar">
+    <div class="top-bar__inner">
+      <a href="/" class="brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 12.5v-7Z" fill="currentColor"/>
+            <path d="M8.7 9.3l2 2.2 4.1-4.5" stroke="var(--color-ink-deep)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="brand__word">ReviewReply</span>
+      </a>
+      {% block header_extra %}{% endblock %}
+    </div>
   </header>
-  <main>
+  <main class="shell">
     {% block content %}{% endblock %}
   </main>
   <script src="/static/app.js" defer></script>

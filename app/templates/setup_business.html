@@ -1,25 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Set up your business — ReviewReply{% endblock %}
 {% block content %}
-<h1>Tell us about your business</h1>
+<div class="page-head">
+  <h1>Tell us about your business</h1>
+  <p class="page-head__sub">Step 1 of 2</p>
+</div>
 
-{% if errors %}
-<ul class="errors">
-  {% for error in errors %}<li>{{ error }}</li>{% endfor %}
-</ul>
-{% endif %}
+<div class="panel">
+  {% if errors %}
+  <ul class="alert alert-error">
+    {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+  </ul>
+  {% endif %}
 
-<form method="post" action="/businesses">
-  <label for="name">Business name</label>
-  <input type="text" id="name" name="name" value="{{ form.name if form else '' }}" required>
+  <form method="post" action="/businesses">
+    <div class="field">
+      <label for="name">Business name</label>
+      <input type="text" id="name" name="name" value="{{ form.name if form else '' }}" required>
+    </div>
 
-  <label for="business_type">Business type</label>
-  <input type="text" id="business_type" name="business_type" placeholder="e.g. coffee shop"
-         value="{{ form.business_type if form else '' }}" required>
+    <div class="field">
+      <label for="business_type">Business type</label>
+      <input type="text" id="business_type" name="business_type" placeholder="e.g. coffee shop"
+             value="{{ form.business_type if form else '' }}" required>
+    </div>
 
-  <label for="owner_name">Your name</label>
-  <input type="text" id="owner_name" name="owner_name" value="{{ form.owner_name if form else '' }}" required>
+    <div class="field">
+      <label for="owner_name">Your name</label>
+      <input type="text" id="owner_name" name="owner_name" value="{{ form.owner_name if form else '' }}" required>
+    </div>
 
-  <button type="submit">Continue</button>
-</form>
+    <button type="submit" class="btn btn-primary">Continue</button>
+  </form>
+</div>
 {% endblock %}
