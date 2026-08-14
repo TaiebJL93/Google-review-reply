@@ -67,6 +67,7 @@ class Draft(Base):
     id = Column(Integer, primary_key=True)
     review_id = Column(Integer, ForeignKey("reviews.id"), nullable=False)
     content = Column(Text, nullable=False)
+    saved_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     review = relationship("Review", back_populates="draft")

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.database import Base, SessionLocal, engine
+from app.database import Base, SessionLocal, engine, upgrade_schema
 from app.models import Business
 from app.routes import business, drafts, reviews
 
@@ -13,6 +13,7 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 app = FastAPI(title="ReviewReply")
 
 Base.metadata.create_all(bind=engine)
+upgrade_schema()
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 

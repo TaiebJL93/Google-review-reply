@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -37,6 +38,36 @@ def create_draft(request: Request, review_id: int, db: Session = Depends(get_db)
         db.add(draft)
     else:
         draft.content = content
+        draft.saved_at = None
+    db.commit()
+    db.refresh(draft)
+
+    return templates.TemplateResponse(
+        request, "_draft_partial.html", {"review": review, "draft": draft}
+    )
+
+
+@router.post("/reviews/{review_id}/draft/save")
+def save_draft(
+    request: Request,
+    review_id: int,
+    content: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    review = db.get(Review, review_id)
+    if review is None:
+        raise HTTPException(status_code=404, detail="Review not found.")
+
+    draft = review.draft
+    if draft is None:
+        raise HTTPException(status_code=400, detail="Generate a draft before saving.")
+
+    content = content.strip()
+    if not content:
+        raise HTTPException(status_code=422, detail="Draft content cannot be empty.")
+
+    draft.content = content
+    draft.saved_at = datetime.utcnow()
     db.commit()
     db.refresh(draft)
 
