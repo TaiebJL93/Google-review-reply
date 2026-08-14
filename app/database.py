@@ -23,3 +23,21 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def upgrade_schema() -> None:
+    """Adds columns introduced after a table already exists locally.
+
+    Base.metadata.create_all() only creates missing tables, it never alters
+    an existing one — this project has no migration tool, so new nullable
+    columns get patched in here instead of requiring users to delete their
+    local reviewreply.db. Must run after create_all() so the table exists.
+    """
+    if not is_sqlite:
+        return
+
+    with engine.connect() as conn:
+        existing_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(drafts)")}
+        if "saved_at" not in existing_columns:
+            conn.exec_driver_sql("ALTER TABLE drafts ADD COLUMN saved_at DATETIME")
+            conn.commit()

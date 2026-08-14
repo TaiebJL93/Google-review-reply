@@ -5,6 +5,18 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  const saveButton = event.target.closest("[data-save-draft]");
+  if (saveButton) {
+    await handleSave(saveButton);
+    return;
+  }
+
+  const editButton = event.target.closest("[data-edit-draft]");
+  if (editButton) {
+    handleEdit(editButton);
+    return;
+  }
+
   const copyButton = event.target.closest("[data-copy-target]");
   if (copyButton) {
     handleCopy(copyButton);
@@ -32,6 +44,43 @@ async function handleDraft(button) {
   } finally {
     button.disabled = false;
     button.textContent = originalLabel;
+  }
+}
+
+async function handleSave(button) {
+  const reviewId = button.getAttribute("data-save-draft");
+  const container = document.getElementById(`draft-${reviewId}`);
+  const textarea = document.getElementById(`draft-content-${reviewId}`);
+  const originalLabel = button.textContent;
+
+  button.disabled = true;
+  button.textContent = "Saving...";
+
+  try {
+    const response = await fetch(`/reviews/${reviewId}/draft/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `content=${encodeURIComponent(textarea.value)}`,
+    });
+    if (!response.ok) {
+      const message = await readErrorMessage(response);
+      showError(container, message);
+      return;
+    }
+    container.innerHTML = await response.text();
+  } catch (err) {
+    showError(container, "Network error — please try again.");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+}
+
+function handleEdit(button) {
+  const reviewId = button.getAttribute("data-edit-draft");
+  const panel = document.getElementById(`draft-${reviewId}`).querySelector(".draft-panel");
+  if (panel) {
+    panel.dataset.state = "edit";
   }
 }
 

@@ -1,8 +1,24 @@
-<div class="draft-panel">
-  <p class="draft-panel__label">Draft reply</p>
-  <textarea id="draft-content-{{ review.id }}" class="draft-content" rows="4">{{ review.draft.content }}</textarea>
-  <div class="draft-actions">
-    <button type="button" class="btn btn-primary btn-sm" data-copy-target="draft-content-{{ review.id }}">Copy</button>
-    <button type="button" class="btn btn-ghost btn-sm" data-draft-review-id="{{ review.id }}">Regenerate</button>
+<div class="draft-panel" data-state="{{ 'view' if review.draft.saved_at else 'edit' }}">
+  <div class="draft-panel__view">
+    <p class="draft-panel__label">
+      Saved reply
+      {% if review.draft.saved_at %}<span class="draft-panel__timestamp">— saved {{ review.draft.saved_at.strftime('%Y-%m-%d %H:%M') }} UTC</span>{% endif %}
+    </p>
+    <textarea id="draft-content-{{ review.id }}-view" class="draft-content draft-content--view" rows="4" readonly>{{ review.draft.content }}</textarea>
+    <div class="draft-actions">
+      <button type="button" class="btn btn-primary btn-sm" data-copy-target="draft-content-{{ review.id }}-view">Copy</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-edit-draft="{{ review.id }}">Edit</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-draft-review-id="{{ review.id }}">Regenerate</button>
+    </div>
+  </div>
+
+  <div class="draft-panel__edit">
+    <p class="draft-panel__label">Draft reply</p>
+    <textarea id="draft-content-{{ review.id }}" class="draft-content" rows="4">{{ review.draft.content }}</textarea>
+    <div class="draft-actions">
+      <button type="button" class="btn btn-primary btn-sm" data-save-draft="{{ review.id }}">Save</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-copy-target="draft-content-{{ review.id }}">Copy</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-draft-review-id="{{ review.id }}">Regenerate</button>
+    </div>
   </div>
 </div>
