@@ -7,3 +7,4 @@ google-genai
 pytest
 httpx
 python-dotenv
+psycopg2-binary
