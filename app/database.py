@@ -37,7 +37,12 @@ def upgrade_schema() -> None:
         return
 
     with engine.connect() as conn:
-        existing_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(drafts)")}
-        if "saved_at" not in existing_columns:
+        draft_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(drafts)")}
+        if "saved_at" not in draft_columns:
             conn.exec_driver_sql("ALTER TABLE drafts ADD COLUMN saved_at DATETIME")
+            conn.commit()
+
+        review_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(reviews)")}
+        if "google_review_id" not in review_columns:
+            conn.exec_driver_sql("ALTER TABLE reviews ADD COLUMN google_review_id VARCHAR")
             conn.commit()

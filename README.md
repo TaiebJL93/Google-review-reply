@@ -34,19 +34,37 @@ pasting review text directly.
 The SQLite database file (`reviewreply.db`) is created automatically on
 startup in the project root.
 
-## Connecting a Google Business Profile account (planned, not yet built)
+![ReviewReply dashboard](docs/screenshots/dashboard.png)
 
-Today, reviews only come in via CSV upload or manual paste
-(`app/sources/csv_source.py`, `app/sources/manual_source.py`). A
-`GoogleBusinessSource` adapter already exists as an extension point
-(`app/sources/google_source.py`) but its `fetch()` currently just raises
-`NotImplementedError` — see "Out of scope for MVP" in
-[docs/PLAN.md](docs/PLAN.md). This section documents the full path to
-wiring it up for real, so a business owner (e.g. a coffee shop or
-restaurant) could eventually connect their Google account and have reviews
-sync in automatically instead of pasting them by hand.
+## Connecting a Google Business Profile account
 
-### 1. Prerequisites (Google's side, before writing any code)
+Reviews can come in three ways: CSV upload, manual paste, or now a live
+Google Business Profile connection (`app/sources/google_source.py`,
+`app/routes/google_auth.py`). The OAuth flow, token storage, and sync are
+fully implemented — what's missing is Google's approval of API access,
+which is external to this app and can't be skipped (see prerequisites
+below). Until that's approved, use CSV/paste as usual.
+
+### Using it once you have credentials
+
+1. Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`
+   to `.env` (see `.env.example` — `GOOGLE_REDIRECT_URI` defaults to
+   `http://127.0.0.1:8000/auth/google/callback` for local dev and must
+   exactly match the redirect URI registered on the OAuth client).
+2. On the dashboard, click **Connect Google** and complete the consent
+   screen. This auto-selects the first Business Profile location returned
+   for the account — a business with multiple locations isn't supported
+   yet (no location picker).
+3. Click **Sync Google reviews** any time to pull in new reviews since the
+   last sync. Reviews already imported are skipped (deduped by Google's
+   review ID), so it's safe to click repeatedly.
+4. **Disconnect** removes the stored tokens and stops the sync option from
+   showing; it doesn't delete reviews already imported.
+
+Tokens are stored per business in the `google_connections` table
+(`app/models.py`); access tokens are refreshed automatically when expired.
+
+### 1. Prerequisites (Google's side — this is the real gate, not the code)
 
 - The business must have a **Google Business Profile that is claimed and
   verified**, and Google generally expects it to have been active for a
@@ -75,42 +93,31 @@ own basic-setup instructions have you enable the full family together):
 - My Business Lodging API
 
 Then create an **OAuth 2.0 Client ID** (Credentials → Create credentials →
-OAuth client ID → Web application), with a redirect URI pointing at
-whatever callback route this app adds (e.g.
-`http://127.0.0.1:8000/auth/google/callback` for local dev). The token
-request must include this scope:
+OAuth client ID → Web application), with the redirect URI set to this
+app's callback route — `http://127.0.0.1:8000/auth/google/callback` for
+local dev, or your deployed host's equivalent. The token request must
+include this scope:
 
 ```
 https://www.googleapis.com/auth/business.manage
 ```
 
-Add the resulting client ID/secret to `.env`, following the existing
-`GEMINI_API_KEY` pattern in `app/config.py`:
+Add the resulting client ID/secret to `.env` — see `.env.example`.
 
-```
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-```
+### 3. Known limitations of the current implementation
 
-### 3. What still needs to be built in this repo
-
-None of this exists yet — it's the implementation work behind the
-`GoogleBusinessSource` stub:
-
-- OAuth authorize + callback routes (`/auth/google/...`) that run the
-  consent flow and receive the authorization code.
-- Persisting the resulting access/refresh token per `Business` (a new
-  table or columns — nothing in `app/models.py` stores credentials today).
-- Implementing `GoogleBusinessSource.fetch()` to call
-  `accounts.locations.reviews.list`, paginated, for the connected location.
-- Incremental sync: track the newest review's `updateTime` per business and
-  only pull reviews newer than that on later syncs, instead of re-fetching
-  full history every time (the stub's docstring in `google_source.py`
-  outlines this).
-- Mapping the API's `Review` resource (`reviewer.displayName`,
-  `starRating`, `comment`, `createTime`) onto this app's `ReviewData`.
-- A refresh-token renewal path, since access tokens expire and the sync
-  needs to run unattended.
+- **Single location only**: the callback auto-connects the first Business
+  Profile location returned for the account. Multi-location businesses
+  would need a location-picker step added to `app/routes/google_auth.py`.
+- **No CSRF nonce on the OAuth `state` param**: `state` just carries the
+  business ID through the redirect round-trip. Acceptable for this MVP's
+  single-owner, no-login model, but would need a signed/session-bound
+  state value if multi-user auth is ever added.
+- **No reply-posting back to Google**: this only pulls reviews in; replies
+  are still copy-pasted by the owner (see "Out of scope for MVP" in
+  [docs/PLAN.md](docs/PLAN.md)).
+- **Manual sync only**: there's no scheduled/background sync — the owner
+  clicks "Sync Google reviews" on the dashboard when they want fresh data.
 
 There is no billing for the Business Profile APIs themselves — access
 approval is the real gate, not cost.

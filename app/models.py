@@ -28,6 +28,9 @@ class Business(Base):
         "VoiceProfile", back_populates="business", uselist=False, cascade="all, delete-orphan"
     )
     reviews = relationship("Review", back_populates="business", cascade="all, delete-orphan")
+    google_connection = relationship(
+        "GoogleConnection", back_populates="business", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class VoiceProfile(Base):
@@ -54,6 +57,7 @@ class Review(Base):
     rating = Column(Integer, nullable=False)
     body = Column(Text, nullable=False)
     review_date = Column(Date, nullable=True)
+    google_review_id = Column(String, nullable=True, unique=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     business = relationship("Business", back_populates="reviews")
@@ -71,3 +75,19 @@ class Draft(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     review = relationship("Review", back_populates="draft")
+
+
+class GoogleConnection(Base):
+    __tablename__ = "google_connections"
+
+    id = Column(Integer, primary_key=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, unique=True)
+    access_token = Column(Text, nullable=False)
+    refresh_token = Column(Text, nullable=False)
+    token_expires_at = Column(DateTime, nullable=False)
+    account_name = Column(String, nullable=False)
+    location_name = Column(String, nullable=False)
+    last_synced_review_time = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    business = relationship("Business", back_populates="google_connection")
