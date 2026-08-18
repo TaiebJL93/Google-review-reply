@@ -10,6 +10,7 @@ class ReviewData:
     rating: int
     body: str
     review_date: Optional[date_type] = None
+    external_id: Optional[str] = None
 
 
 class ReviewSource(ABC):

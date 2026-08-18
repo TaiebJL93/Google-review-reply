@@ -202,6 +202,32 @@ a { color: var(--color-accent); }
   font-weight: 600;
 }
 
+.google-status {
+  color: var(--color-ink-faint);
+  font-size: 0.85rem;
+}
+
+.google-status__synced {
+  font-style: italic;
+}
+
+.top-bar__form {
+  display: inline-flex;
+  margin: 0;
+}
+
+/* .btn-ghost defaults to dark-on-transparent for the light review cards;
+   the top bar is dark-on-dark, so invert it here to stay visible. */
+.top-bar__nav .btn-ghost {
+  color: var(--color-on-dark);
+  border-color: var(--color-on-dark);
+}
+
+.top-bar__nav .btn-ghost:hover {
+  background: var(--color-on-dark);
+  color: var(--color-ink-deep);
+}
+
 .shell {
   position: relative;
   z-index: 1;

@@ -5,6 +5,24 @@
 {% block header_extra %}
 <nav class="top-bar__nav">
   <span class="top-bar__business">Signed in as <strong>{{ business.name }}</strong></span>
+  {% if business.google_connection %}
+    <span class="google-status">
+      Google connected
+      {% if business.google_connection.last_synced_review_time %}
+        <span class="google-status__synced">— synced {{ business.google_connection.last_synced_review_time.strftime('%Y-%m-%d %H:%M') }} UTC</span>
+      {% else %}
+        <span class="google-status__synced">— not synced yet</span>
+      {% endif %}
+    </span>
+    <form action="/businesses/{{ business.id }}/google/sync" method="post" class="top-bar__form">
+      <button type="submit" class="btn btn-ghost btn-sm">Sync Google reviews</button>
+    </form>
+    <form action="/businesses/{{ business.id }}/google/disconnect" method="post" class="top-bar__form">
+      <button type="submit" class="btn btn-ghost btn-sm">Disconnect</button>
+    </form>
+  {% else %}
+    <a href="/businesses/{{ business.id }}/google/connect" class="btn btn-ghost btn-sm">Connect Google</a>
+  {% endif %}
   <a href="/businesses/{{ business.id }}/import" class="btn btn-primary btn-sm">Import reviews</a>
 </nav>
 {% endblock %}

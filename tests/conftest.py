@@ -2,6 +2,8 @@ import os
 
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ.setdefault("GEMINI_API_KEY", "test-key")
+os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id")
+os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 
 import pytest
 from fastapi.testclient import TestClient
