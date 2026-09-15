@@ -1,11 +1,12 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.auth import current_user, get_owned_business
 from app.database import get_db
-from app.models import Business, Review
+from app.models import Review, User
 from app.sources.base import ReviewData
 from app.sources.csv_source import CsvSource, CsvSourceError
 from app.sources.manual_source import ManualSource, ManualSourceError
@@ -15,8 +16,13 @@ router = APIRouter()
 
 
 @router.get("/businesses/{business_id}/dashboard")
-def dashboard(request: Request, business_id: int, db: Session = Depends(get_db)):
-    business = _get_business_or_404(db, business_id)
+def dashboard(
+    request: Request,
+    business_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    business = get_owned_business(db, user, business_id)
     reviews = (
         db.query(Review)
         .filter(Review.business_id == business_id)
@@ -29,8 +35,13 @@ def dashboard(request: Request, business_id: int, db: Session = Depends(get_db))
 
 
 @router.get("/businesses/{business_id}/import")
-def import_form(request: Request, business_id: int, db: Session = Depends(get_db)):
-    business = _get_business_or_404(db, business_id)
+def import_form(
+    request: Request,
+    business_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    business = get_owned_business(db, user, business_id)
     return templates.TemplateResponse(
         request, "import_reviews.html", {"business": business, "errors": []}
     )
@@ -41,9 +52,10 @@ async def import_csv(
     request: Request,
     business_id: int,
     file: UploadFile = File(...),
+    user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    business = _get_business_or_404(db, business_id)
+    business = get_owned_business(db, user, business_id)
     content = await file.read()
     try:
         reviews_data = CsvSource(content).fetch()
@@ -64,9 +76,10 @@ def import_manual(
     request: Request,
     business_id: int,
     text: str = Form(...),
+    user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    business = _get_business_or_404(db, business_id)
+    business = get_owned_business(db, user, business_id)
     try:
         reviews_data = ManualSource(text).fetch()
     except ManualSourceError as exc:
@@ -94,10 +107,3 @@ def _persist_reviews(db: Session, business_id: int, reviews_data: List[ReviewDat
             )
         )
     db.commit()
-
-
-def _get_business_or_404(db: Session, business_id: int) -> Business:
-    business = db.get(Business, business_id)
-    if business is None:
-        raise HTTPException(status_code=404, detail="Business not found.")
-    return business

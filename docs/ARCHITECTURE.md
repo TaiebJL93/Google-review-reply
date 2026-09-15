@@ -4,13 +4,16 @@
 
 ```
 app/
-  main.py          FastAPI app, mounts routers, creates tables on startup
-  config.py        Settings (env vars: GEMINI_API_KEY, DATABASE_URL)
+  main.py          FastAPI app, session middleware, mounts routers, creates tables on startup
+  config.py        Settings (env vars: GEMINI_API_KEY, DATABASE_URL, SECRET_KEY, ...)
   database.py      SQLAlchemy engine/session setup
-  models.py        ORM models: Business, VoiceProfile, Review, Draft
+  models.py        ORM models: User, Business, VoiceProfile, Review, Draft
   schemas.py       Pydantic request/response models for form validation
+  auth.py          Password hashing, session helpers, current_user/current_user_api
+                   dependencies, get_owned_business ownership check
   generation.py    Prompt builder + Gemini client wrapper
   routes/
+    auth.py        Signup, login, logout
     business.py    Business + voice profile setup routes
     reviews.py     Review import (CSV/paste) + dashboard routes
     drafts.py      Draft generation + edit routes
@@ -33,8 +36,16 @@ tests/
 ## Data Model
 
 ```
+User
+  id             int, PK
+  email          str, unique
+  password_hash  str        "pbkdf2_sha256$<iterations>$<salt>$<digest>"
+  created_at     datetime
+
 Business
   id            int, PK
+  user_id       int, FK -> User.id (nullable only for pre-accounts rows;
+                                     see "adopts ownerless businesses" below)
   name          str
   business_type str            e.g. "coffee shop", "auto repair"
   owner_name    str
@@ -75,9 +86,52 @@ text column) so regeneration history could later become 1:many without a
 migration that changes column semantics — for the MVP itself we keep it 1:1
 and simply overwrite.
 
+## Accounts & Session Auth
+
+`User` rows hold an email and a PBKDF2-HMAC-SHA256 password hash (600,000
+iterations, salted per user — `app/auth.py`). `POST /signup` and
+`POST /login` (`app/routes/auth.py`) both call `login_user()`, which stores
+`user_id` and `user_email` in a signed, `itsdangerous`-backed session cookie
+via Starlette's `SessionMiddleware` (`app/main.py`, keyed by `SECRET_KEY`).
+
+Two FastAPI dependencies gate everything else:
+
+- `current_user` — for page routes (`GET`/`POST` returning HTML). No session
+  raises `LoginRequired`, caught by an exception handler in `app/main.py`
+  that redirects to `/login?next=<original path>` so a successful login
+  returns the user to where they started.
+- `current_user_api` — for the two `fetch()`-driven routes in
+  `app/routes/drafts.py` (draft generate/save). A redirect here would be
+  followed silently by `fetch` and the login page's HTML would get injected
+  into the review card, so this returns a 401 instead, which `app/static/app.js`
+  surfaces via its existing error-message path.
+
+`get_owned_business(db, user, business_id)` (`app/auth.py`) is the single
+place that scopes a `Business` lookup to its owner — every business/review/
+draft/Google-connection route calls it (or the equivalent review-level check
+in `drafts.py`) instead of querying `Business`/`Review` directly. A business
+that exists but belongs to someone else 404s, the same as one that doesn't
+exist at all, so IDs can't be enumerated to confirm which ones are real.
+
+Businesses created before accounts existed have `user_id = NULL`. Rather
+than a migration, `POST /signup` adopts all ownerless businesses onto the
+*first* account ever created on that database — a reasonable default for
+this MVP's single-owner-per-deployment model, but not something that would
+generalize to a database several people had already signed up on.
+
+The Google OAuth `state` param additionally carries a random nonce, stashed
+in the session by `/google/connect` and checked by `/auth/google/callback`
+(`app/routes/google_auth.py`) — this is separate from login auth and exists
+specifically to stop a crafted callback URL from linking a Google account to
+the wrong business (login CSRF).
+
 ## Request Flow
 
-1. **Setup**: `POST /business` creates a `Business`; `POST /business/{id}/voice`
+1. **Accounts**: `POST /signup` creates a `User` and logs them in;
+   `POST /login` / `POST /logout` handle returning sessions. Every route
+   below runs behind the `current_user`/`current_user_api` dependency
+   described above.
+2. **Setup**: `POST /business` creates a `Business`; `POST /business/{id}/voice`
    creates/updates its `VoiceProfile` from the questionnaire form (tone,
    sign-off, phrases, optional pasted example responses).
 2. **Import**: `POST /reviews/import/csv` (file upload) or

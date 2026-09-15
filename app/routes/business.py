@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.auth import current_user, get_owned_business
 from app.database import get_db
-from app.models import Business, VoiceProfile
+from app.models import Business, User, VoiceProfile
 from app.schemas import BusinessCreate, VoiceProfileForm
 from app.templating import templates
 
@@ -12,7 +13,7 @@ router = APIRouter()
 
 
 @router.get("/setup")
-def setup_form(request: Request):
+def setup_form(request: Request, user: User = Depends(current_user)):
     return templates.TemplateResponse(request, "setup_business.html", {"errors": []})
 
 
@@ -22,6 +23,7 @@ def create_business(
     name: str = Form(...),
     business_type: str = Form(...),
     owner_name: str = Form(...),
+    user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
     try:
@@ -37,7 +39,12 @@ def create_business(
             status_code=422,
         )
 
-    business = Business(name=data.name, business_type=data.business_type, owner_name=data.owner_name)
+    business = Business(
+        user_id=user.id,
+        name=data.name,
+        business_type=data.business_type,
+        owner_name=data.owner_name,
+    )
     db.add(business)
     db.commit()
     db.refresh(business)
@@ -45,8 +52,13 @@ def create_business(
 
 
 @router.get("/businesses/{business_id}/voice-setup")
-def voice_setup_form(request: Request, business_id: int, db: Session = Depends(get_db)):
-    business = _get_business_or_404(db, business_id)
+def voice_setup_form(
+    request: Request,
+    business_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    business = get_owned_business(db, user, business_id)
     return templates.TemplateResponse(
         request, "setup_voice.html", {"business": business, "errors": []}
     )
@@ -61,9 +73,10 @@ def save_voice_profile(
     phrases_to_use: str = Form(""),
     phrases_to_avoid: str = Form(""),
     example_responses: str = Form(""),
+    user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    business = _get_business_or_404(db, business_id)
+    business = get_owned_business(db, user, business_id)
     try:
         data = VoiceProfileForm(
             tone=tone,
@@ -93,10 +106,3 @@ def save_voice_profile(
     db.commit()
 
     return RedirectResponse(url=f"/businesses/{business.id}/dashboard", status_code=303)
-
-
-def _get_business_or_404(db: Session, business_id: int) -> Business:
-    business = db.get(Business, business_id)
-    if business is None:
-        raise HTTPException(status_code=404, detail="Business not found.")
-    return business

@@ -3,6 +3,7 @@ uvicorn
 sqlalchemy
 jinja2
 python-multipart
+itsdangerous
 google-genai
 pytest
 httpx

@@ -20,6 +20,12 @@
         <span class="brand__word">ReviewReply</span>
       </a>
       {% block header_extra %}{% endblock %}
+      {% if request.session.get('user_email') %}
+      <form action="/logout" method="post" class="top-bar__account">
+        <span class="top-bar__user" title="{{ request.session['user_email'] }}">{{ request.session['user_email'] }}</span>
+        <button type="submit" class="btn btn-ghost btn-sm">Log out</button>
+      </form>
+      {% endif %}
     </div>
   </header>
   <main class="shell">

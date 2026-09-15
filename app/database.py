@@ -46,3 +46,10 @@ def upgrade_schema() -> None:
         if "google_review_id" not in review_columns:
             conn.exec_driver_sql("ALTER TABLE reviews ADD COLUMN google_review_id VARCHAR")
             conn.commit()
+
+        business_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(businesses)")}
+        if "user_id" not in business_columns:
+            conn.exec_driver_sql(
+                "ALTER TABLE businesses ADD COLUMN user_id INTEGER REFERENCES users(id)"
+            )
+            conn.commit()
