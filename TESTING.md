@@ -25,6 +25,11 @@ the working directory `pytest` is invoked from.
   rating, body, date) and the voice profile's attributes (tone, sign-off,
   phrases, business type/owner, few-shot examples), plus the recent-openings
   avoidance instruction.
-- `tests/test_routes.py` — the full request flow (create business → set
-  voice profile → import via CSV/manual paste → generate a draft → draft
+- `tests/test_routes.py` — the full request flow (sign up → create business →
+  set voice profile → import via CSV/manual paste → generate a draft → draft
   persists across a dashboard reload), plus the 400/404 error paths.
+- `tests/test_auth_routes.py` — signup/login/logout success and validation
+  error paths, the `next`-param redirect (and its open-redirect guard), and
+  that one account can't reach another account's business (404, not 403).
+- `tests/test_google_auth_routes.py` — in addition to the OAuth/sync flow,
+  covers the `state`-nonce CSRF check on `/auth/google/callback`.

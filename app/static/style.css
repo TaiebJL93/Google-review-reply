@@ -216,14 +216,33 @@ a { color: var(--color-accent); }
   margin: 0;
 }
 
+.top-bar__account {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.top-bar__user {
+  color: var(--color-ink-faint);
+  font-size: 0.85rem;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* .btn-ghost defaults to dark-on-transparent for the light review cards;
    the top bar is dark-on-dark, so invert it here to stay visible. */
-.top-bar__nav .btn-ghost {
+.top-bar__nav .btn-ghost,
+.top-bar__account .btn-ghost {
   color: var(--color-on-dark);
   border-color: var(--color-on-dark);
 }
 
-.top-bar__nav .btn-ghost:hover {
+.top-bar__nav .btn-ghost:hover,
+.top-bar__account .btn-ghost:hover {
   background: var(--color-on-dark);
   color: var(--color-ink-deep);
 }
@@ -336,6 +355,14 @@ a { color: var(--color-accent); }
   margin-top: var(--space-5);
 }
 
+.panel--narrow {
+  max-width: 440px;
+}
+
+.page-head__sub a {
+  font-weight: 600;
+}
+
 .panel__intro {
   color: var(--color-ink-muted);
   margin-bottom: var(--space-5);
@@ -366,6 +393,8 @@ form {
 }
 
 input[type="text"],
+input[type="email"],
+input[type="password"],
 input[type="file"],
 select,
 textarea {
@@ -379,6 +408,8 @@ textarea {
 }
 
 input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
 select:focus,
 textarea:focus {
   border-color: var(--color-accent);

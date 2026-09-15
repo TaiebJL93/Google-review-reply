@@ -28,6 +28,16 @@
 {% endblock %}
 
 {% block content %}
+{% if request.query_params.get('google_error') == 'not_configured' %}
+<ul class="alert alert-error">
+  <li>Google Business Profile isn't set up yet — <code>GOOGLE_CLIENT_ID</code> and
+    <code>GOOGLE_CLIENT_SECRET</code> aren't configured. See "Connecting a Google
+    Business Profile account" in the README for how to create a Google Cloud OAuth
+    client and add the credentials to <code>.env</code> (local) or your host's
+    environment variables (production), then try again.</li>
+</ul>
+{% endif %}
+
 <div class="page-head">
   <h1>Reviews</h1>
   <p class="page-head__sub">{{ reviews|length }} review{{ 's' if reviews|length != 1 else '' }} on file</p>

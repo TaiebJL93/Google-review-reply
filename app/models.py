@@ -15,15 +15,31 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String, nullable=False, unique=True)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    businesses = relationship("Business", back_populates="owner", order_by="Business.id")
+
+
 class Business(Base):
     __tablename__ = "businesses"
 
     id = Column(Integer, primary_key=True)
+    # Nullable only so databases created before accounts existed still load;
+    # every business created through the app has an owner. See
+    # routes/auth.py for how pre-account businesses get adopted.
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     name = Column(String, nullable=False)
     business_type = Column(String, nullable=False)
     owner_name = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    owner = relationship("User", back_populates="businesses")
     voice_profile = relationship(
         "VoiceProfile", back_populates="business", uselist=False, cascade="all, delete-orphan"
     )

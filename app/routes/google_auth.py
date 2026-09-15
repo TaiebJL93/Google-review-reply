@@ -1,9 +1,12 @@
+import secrets
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.auth import current_user, get_owned_business
+from app.config import settings
 from app.database import get_db
 from app.google_client import (
     build_authorize_url,
@@ -11,23 +14,58 @@ from app.google_client import (
     list_accounts,
     list_locations,
 )
-from app.models import Business, GoogleConnection, Review
+from app.models import GoogleConnection, Review, User
 from app.sources.google_source import GoogleBusinessSource
 
 router = APIRouter()
 
+OAUTH_STATE_SESSION_KEY = "google_oauth_state"
+
 
 @router.get("/businesses/{business_id}/google/connect")
-def connect(business_id: int, db: Session = Depends(get_db)):
+def connect(
+    request: Request,
+    business_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
     """Kicks off the OAuth consent flow. business_id rides in `state` since the
-    registered redirect URI is fixed and can't carry a dynamic path segment."""
-    _get_business_or_404(db, business_id)
-    return RedirectResponse(url=build_authorize_url(state=str(business_id)))
+    registered redirect URI is fixed and can't carry a dynamic path segment.
+    A random nonce is appended and remembered in the session so the callback
+    can reject a `state` that this browser never initiated (login CSRF)."""
+    get_owned_business(db, user, business_id)
+
+    if not settings.google_client_id or not settings.google_client_secret:
+        # Without this check, build_authorize_url() still returns a URL —
+        # just one with an empty client_id — and Google's own error page
+        # ("Missing required parameter: client_id") is the first anyone
+        # hears about it. Catch it here instead so the failure is explained
+        # in-app, on the same domain, with a way back.
+        return RedirectResponse(
+            url=f"/businesses/{business_id}/dashboard?google_error=not_configured",
+            status_code=303,
+        )
+
+    state = f"{business_id}:{secrets.token_urlsafe(16)}"
+    request.session[OAUTH_STATE_SESSION_KEY] = state
+    return RedirectResponse(url=build_authorize_url(state=state))
 
 
 @router.get("/auth/google/callback")
-def callback(code: str, state: str, db: Session = Depends(get_db)):
-    business = _get_business_or_404(db, int(state))
+def callback(
+    request: Request,
+    code: str,
+    state: str,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    expected_state = request.session.pop(OAUTH_STATE_SESSION_KEY, None)
+    if expected_state is None or not secrets.compare_digest(state, expected_state):
+        raise HTTPException(
+            status_code=400,
+            detail="This Google sign-in didn't start from ReviewReply. Click Connect Google again.",
+        )
+    business = get_owned_business(db, user, int(state.split(":", 1)[0]))
 
     tokens = exchange_code_for_tokens(code)
     if not tokens.refresh_token:
@@ -71,8 +109,12 @@ def callback(code: str, state: str, db: Session = Depends(get_db)):
 
 
 @router.post("/businesses/{business_id}/google/disconnect")
-def disconnect(business_id: int, db: Session = Depends(get_db)):
-    business = _get_business_or_404(db, business_id)
+def disconnect(
+    business_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    business = get_owned_business(db, user, business_id)
     if business.google_connection is not None:
         db.delete(business.google_connection)
         db.commit()
@@ -80,8 +122,12 @@ def disconnect(business_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/businesses/{business_id}/google/sync")
-def sync(business_id: int, db: Session = Depends(get_db)):
-    business = _get_business_or_404(db, business_id)
+def sync(
+    business_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    business = get_owned_business(db, user, business_id)
     connection = business.google_connection
     if connection is None:
         raise HTTPException(
@@ -120,10 +166,3 @@ def sync(business_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return RedirectResponse(url=f"/businesses/{business_id}/dashboard", status_code=303)
-
-
-def _get_business_or_404(db: Session, business_id: int) -> Business:
-    business = db.get(Business, business_id)
-    if business is None:
-        raise HTTPException(status_code=404, detail="Business not found.")
-    return business

@@ -25,16 +25,33 @@ https://aistudio.google.com/apikey.
 uvicorn app.main:app --reload
 ```
 
-Visit http://127.0.0.1:8000/ — on first run this redirects to `/setup` to
-create your business and voice profile, then to the dashboard. Import
-reviews from the dashboard's "Import reviews" link, either by uploading a
-CSV (see `seed_data/sample_reviews.csv` for the expected columns) or by
-pasting review text directly.
+Visit http://127.0.0.1:8000/ — you'll land on `/signup` first. Create an
+account with an email and password, which signs you in and redirects to
+`/setup` to create your business and voice profile, then to the dashboard.
+Each account only sees the businesses it created (see "Accounts" below).
+Import reviews from the dashboard's "Import reviews" link, either by
+uploading a CSV (see `seed_data/sample_reviews.csv` for the expected
+columns) or by pasting review text directly.
 
 The SQLite database file (`reviewreply.db`) is created automatically on
 startup in the project root.
 
 ![ReviewReply dashboard](docs/screenshots/dashboard.png)
+
+## Accounts
+
+Signing up (`/signup`) creates a `User` row and logs you in; `/login` and
+`/logout` handle returning sessions. Passwords are hashed with
+PBKDF2-HMAC-SHA256 (`app/auth.py`) — never stored or logged in plain text.
+Every `Business` belongs to exactly one `User`, and all business/review/draft
+routes 404 (not 403) on another account's data, so business IDs can't be
+probed to confirm they exist. Visiting any page without an active session
+redirects to `/login?next=<original path>`, which sends you back there after
+a successful login.
+
+If you're upgrading a database that predates accounts (rows in `businesses`
+with no owner), the first person to sign up on that database automatically
+adopts all ownerless businesses — no manual migration needed.
 
 ## Connecting a Google Business Profile account
 
@@ -125,3 +142,59 @@ approval is the real gate, not cost.
 ## Tests
 
 See [TESTING.md](TESTING.md).
+
+## Deploying for free (Render + Neon + a free domain)
+
+This gives you a public URL like `https://your-app.onrender.com`, plus
+optionally a custom domain like `yourapp.dpdns.org`. Three free accounts
+are involved — this repo is already configured for all three (`render.yaml`,
+`app/config.py`'s `postgres://` → `postgresql://` normalization, the
+`SECRET_KEY`/`RENDER` env handling), but account creation, dashboard clicks,
+and email verification have to happen on your end — no tool here can do
+that for you.
+
+### 1. Database — [Neon](https://neon.tech) (free Postgres, no expiry)
+
+Render's own free tier has no persistent disk, so the SQLite file this app
+uses locally would be wiped on every redeploy or idle spin-down — production
+needs a database that lives outside Render. Neon's free tier doesn't expire
+(unlike Render's own free Postgres, which is deleted 30 days after
+creation).
+
+1. Sign up at neon.tech, create a project.
+2. Copy the connection string it gives you (starts with `postgresql://` or
+   `postgres://` — both work, see the normalization note above). You'll
+   paste this into Render as `DATABASE_URL` in the next step.
+
+### 2. Hosting — [Render](https://render.com)
+
+1. Sign up at render.com and connect your GitHub account.
+2. New → Blueprint → select this repo. Render will detect `render.yaml`
+   (already in this repo) and set up the web service automatically,
+   including a randomly generated `SECRET_KEY`.
+3. When prompted for the remaining env vars `render.yaml` declares, fill in:
+   - `DATABASE_URL` — the Neon connection string from step 1.
+   - `GEMINI_API_KEY` — from https://aistudio.google.com/apikey.
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — only if you've set up the
+     Google Business Profile connection (see above); leave blank otherwise.
+   - `GOOGLE_REDIRECT_URI` — set to `https://<your-render-subdomain>.onrender.com/auth/google/callback`
+     once Render assigns you a URL, and update the redirect URI on the
+     Google OAuth client to match exactly.
+4. Deploy. First load after any idle period takes about a minute (free
+   tier spins down after 15 minutes of no traffic) — expected, not a bug.
+5. Once live, the first thing to do on the deployed URL is sign up for an
+   account (see "Accounts" above) — production starts with no users either.
+
+### 3. Free domain — [DigitalPlat FreeDomain](https://dash.domain.digitalplat.org)
+
+1. Sign up at dash.domain.digitalplat.org and register a subdomain under
+   one of the offered suffixes (`.dpdns.org`, `.qzz.io`, `.us.kg`, `.xx.kg`,
+   `.qd.je`).
+2. In Render: your service → Settings → Custom Domains → add the domain
+   you registered. Render shows you a CNAME target.
+3. Back in the DigitalPlat dashboard, add a CNAME record pointing your
+   subdomain at the target Render gave you. DNS propagation can take a
+   few minutes to a few hours.
+4. If you set up Google OAuth, update `GOOGLE_REDIRECT_URI` (both in
+   Render's env vars and on the Google OAuth client) to use the new
+   custom domain instead of the `onrender.com` one.

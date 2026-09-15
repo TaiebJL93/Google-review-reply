@@ -1,8 +1,11 @@
 import io
 import re
 
+from tests.conftest import signup
+
 
 def _create_business(client):
+    signup(client)
     response = client.post(
         "/businesses",
         data={"name": "Java Hut", "business_type": "coffee shop", "owner_name": "Maria Ortiz"},
@@ -34,6 +37,7 @@ def _extract_first_review_id(html: str) -> str:
 
 
 def test_create_business_redirects_to_voice_setup(client):
+    signup(client)
     response = client.post(
         "/businesses",
         data={"name": "Java Hut", "business_type": "coffee shop", "owner_name": "Maria Ortiz"},
@@ -44,6 +48,7 @@ def test_create_business_redirects_to_voice_setup(client):
 
 
 def test_create_business_blank_name_returns_errors(client):
+    signup(client)
     response = client.post(
         "/businesses",
         data={"name": "  ", "business_type": "coffee shop", "owner_name": "Maria Ortiz"},
@@ -132,5 +137,6 @@ def test_draft_without_voice_profile_returns_400(client):
 
 
 def test_draft_for_unknown_review_returns_404(client):
+    signup(client)
     response = client.post("/reviews/9999/draft")
     assert response.status_code == 404

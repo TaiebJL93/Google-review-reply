@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.auth import current_user_api
 from app.database import get_db
 from app.generation import generate_reply
-from app.models import Draft, Review
+from app.models import Draft, Review, User
 from app.templating import templates
 
 router = APIRouter()
@@ -17,10 +18,13 @@ OPENING_WORD_COUNT = 6
 
 
 @router.post("/reviews/{review_id}/draft")
-def create_draft(request: Request, review_id: int, db: Session = Depends(get_db)):
-    review = db.get(Review, review_id)
-    if review is None:
-        raise HTTPException(status_code=404, detail="Review not found.")
+def create_draft(
+    request: Request,
+    review_id: int,
+    user: User = Depends(current_user_api),
+    db: Session = Depends(get_db),
+):
+    review = _get_owned_review(db, user, review_id)
 
     voice_profile = review.business.voice_profile
     if voice_profile is None:
@@ -52,11 +56,10 @@ def save_draft(
     request: Request,
     review_id: int,
     content: str = Form(...),
+    user: User = Depends(current_user_api),
     db: Session = Depends(get_db),
 ):
-    review = db.get(Review, review_id)
-    if review is None:
-        raise HTTPException(status_code=404, detail="Review not found.")
+    review = _get_owned_review(db, user, review_id)
 
     draft = review.draft
     if draft is None:
@@ -74,6 +77,13 @@ def save_draft(
     return templates.TemplateResponse(
         request, "_draft_partial.html", {"review": review, "draft": draft}
     )
+
+
+def _get_owned_review(db: Session, user: User, review_id: int) -> Review:
+    review = db.get(Review, review_id)
+    if review is None or review.business.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Review not found.")
+    return review
 
 
 def _recent_openings(db: Session, business_id: int, exclude_review_id: int) -> List[str]:
