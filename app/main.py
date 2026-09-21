@@ -48,12 +48,6 @@ def redirect_to_login(request: Request, exc: LoginRequired):
     return RedirectResponse(url=f"/login?next={quote(target, safe='')}", status_code=303)
 
 
-@app.get("/healthz")
-def healthz():
-    """Render polls this to know the service is up; keep it dependency-free."""
-    return {"status": "ok"}
-
-
 @app.get("/")
 def index(user: User = Depends(current_user), db: Session = Depends(get_db)):
     first_business = (

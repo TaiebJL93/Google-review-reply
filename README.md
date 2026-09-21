@@ -143,58 +143,75 @@ approval is the real gate, not cost.
 
 See [TESTING.md](TESTING.md).
 
-## Deploying for free (Render + Neon + a free domain)
+## Publishing with Cloudflare Tunnel
 
-This gives you a public URL like `https://your-app.onrender.com`, plus
-optionally a custom domain like `yourapp.dpdns.org`. Three free accounts
-are involved — this repo is already configured for all three (`render.yaml`,
-`app/config.py`'s `postgres://` → `postgresql://` normalization, the
-`SECRET_KEY`/`RENDER` env handling), but account creation, dashboard clicks,
-and email verification have to happen on your end — no tool here can do
-that for you.
+This puts the app running on your own PC on the internet through a
+[Cloudflare quick tunnel](https://developers.cloudflare.com/tunnel/get-started/).
+It's free and needs no Cloudflare account or domain. The app keeps using
+the local SQLite database, so nothing is hosted elsewhere: **your PC has to
+stay on, awake, and running the script for the site to be reachable.**
 
-### 1. Database — [Neon](https://neon.tech) (free Postgres, no expiry)
+### 1. Install `cloudflared` (once)
 
-Render's own free tier has no persistent disk, so the SQLite file this app
-uses locally would be wiped on every redeploy or idle spin-down — production
-needs a database that lives outside Render. Neon's free tier doesn't expire
-(unlike Render's own free Postgres, which is deleted 30 days after
-creation).
+With admin rights, the simplest route is:
 
-1. Sign up at neon.tech, create a project.
-2. Copy the connection string it gives you (starts with `postgresql://` or
-   `postgres://` — both work, see the normalization note above). You'll
-   paste this into Render as `DATABASE_URL` in the next step.
+```powershell
+winget install --id Cloudflare.cloudflared
+```
 
-### 2. Hosting — [Render](https://render.com)
+Without admin rights, download Cloudflare's signed executable into your user
+folder instead (`scripts/start-public.ps1` looks there automatically):
 
-1. Sign up at render.com and connect your GitHub account.
-2. New → Blueprint → select this repo. Render will detect `render.yaml`
-   (already in this repo) and set up the web service automatically,
-   including a randomly generated `SECRET_KEY`.
-3. When prompted for the remaining env vars `render.yaml` declares, fill in:
-   - `DATABASE_URL` — the Neon connection string from step 1.
-   - `GEMINI_API_KEY` — from https://aistudio.google.com/apikey.
-   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — only if you've set up the
-     Google Business Profile connection (see above); leave blank otherwise.
-   - `GOOGLE_REDIRECT_URI` — set to `https://<your-render-subdomain>.onrender.com/auth/google/callback`
-     once Render assigns you a URL, and update the redirect URI on the
-     Google OAuth client to match exactly.
-4. Deploy. First load after any idle period takes about a minute (free
-   tier spins down after 15 minutes of no traffic) — expected, not a bug.
-5. Once live, the first thing to do on the deployed URL is sign up for an
-   account (see "Accounts" above) — production starts with no users either.
+```powershell
+$dir = "$env:LOCALAPPDATA\cloudflared"
+New-Item -ItemType Directory -Force $dir | Out-Null
+Invoke-WebRequest -UseBasicParsing -OutFile "$dir\cloudflared.exe" `
+  -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+& "$dir\cloudflared.exe" --version
+```
 
-### 3. Free domain — [DigitalPlat FreeDomain](https://dash.domain.digitalplat.org)
+### 2. Start it
 
-1. Sign up at dash.domain.digitalplat.org and register a subdomain under
-   one of the offered suffixes (`.dpdns.org`, `.qzz.io`, `.us.kg`, `.xx.kg`,
-   `.qd.je`).
-2. In Render: your service → Settings → Custom Domains → add the domain
-   you registered. Render shows you a CNAME target.
-3. Back in the DigitalPlat dashboard, add a CNAME record pointing your
-   subdomain at the target Render gave you. DNS propagation can take a
-   few minutes to a few hours.
-4. If you set up Google OAuth, update `GOOGLE_REDIRECT_URI` (both in
-   Render's env vars and on the Google OAuth client) to use the new
-   custom domain instead of the `onrender.com` one.
+Complete the Setup steps above first (virtual environment and `.env`), then:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\start-public.ps1
+```
+
+The script starts the tunnel, waits for Cloudflare to assign an address,
+then starts the app and prints something like:
+
+```
+ReviewReply is public at:  https://random-words-here.trycloudflare.com
+```
+
+Open that address from any device. Sign up for an account on it first
+(see "Accounts" above) — the deployment starts with no users. Press
+`Ctrl+C` to stop the app and close the tunnel. Use `-Port` if 8000 is
+taken.
+
+While running through the tunnel the session cookie is marked Secure
+(`SECURE_COOKIES=true`), so log in through the public address. Logging in
+at `http://127.0.0.1:8000` in the same run may not keep your session.
+Set `SECRET_KEY` in `.env` if you want logins to survive a restart.
+
+### Limits of a quick tunnel
+
+Cloudflare offers quick tunnels for testing and sharing, not production:
+
+- The address is random and **changes every time you start it**.
+- No uptime guarantee, and no more than 200 requests in flight at once.
+- Server-Sent Events aren't supported (this app doesn't use them).
+
+### Things to know
+
+- **Anyone with the address can sign up** and create drafts, which uses your
+  Gemini API quota. Only share the link with people you trust, and stop the
+  script when you're done.
+- **Connect Google needs the callback registered each run.** The script
+  prints a `Google OAuth callback URL`; add that exact URL to the OAuth
+  client's authorized redirect URIs in Google Cloud before clicking Connect
+  Google. Because it changes every run, this is only practical for testing.
+- **Want a permanent address?** That needs a domain added to Cloudflare and
+  a named tunnel. See Cloudflare's
+  [get started guide](https://developers.cloudflare.com/tunnel/get-started/).
