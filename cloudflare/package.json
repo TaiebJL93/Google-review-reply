@@ -1,0 +1,17 @@
+{
+  "name": "reviewreply-cloudflare",
+  "private": true,
+  "description": "Cloudflare Worker that fronts the ReviewReply container. See README, 'Hosting on Cloudflare'.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "logs": "wrangler tail"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "latest"
+  },
+  "devDependencies": {
+    "wrangler": "latest",
+    "typescript": "latest",
+    "@cloudflare/workers-types": "latest"
+  }
+}

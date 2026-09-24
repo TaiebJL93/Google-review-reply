@@ -9,3 +9,5 @@ venv/
 .claude/
 *.stackdump
 .devswarm-temp/
+cloudflare/node_modules/
+cloudflare/.wrangler/

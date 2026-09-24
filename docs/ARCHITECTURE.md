@@ -203,3 +203,19 @@ only needs to implement `fetch()` against the real API — everything upstream
 (persistence, dashboard, generation) is adapter-agnostic. `GoogleBusinessSource`
 currently raises `NotImplementedError` with a docstring describing the OAuth +
 Business Profile API flow it will need.
+
+## Deployment
+
+Two ways to put the app online, both described in README.md:
+
+- **Cloudflare Containers (hosted).** Browser → Worker (`cloudflare/src/index.ts`)
+  → one container instance named `main`, built from the root `Dockerfile` →
+  Neon Postgres. The Worker only forwards requests, adding
+  `X-Forwarded-Proto: https`; the container gets its settings as environment
+  variables built from Worker secrets. The container disk is ephemeral, so
+  `DATABASE_URL` must point at Postgres; `config._normalize_database_url`
+  accepts Neon's `postgres://` form. `Base.metadata.create_all()` creates the
+  tables on first start; `upgrade_schema()` only applies to SQLite.
+- **Quick tunnel (from your PC).** `scripts/start-public.ps1` runs
+  `cloudflared` plus uvicorn locally against SQLite, at a random
+  `trycloudflare.com` address.

@@ -1,0 +1,17 @@
+# Keep secrets, local data, and tooling out of the container image.
+.env
+*.db
+.venv/
+venv/
+.git/
+.gitignore
+.pytest_cache/
+__pycache__/
+*.pyc
+tests/
+docs/
+seed_data/
+scripts/
+cloudflare/
+.devswarm-temp/
+.claude/

@@ -1,0 +1,32 @@
+{
+  // Cloudflare Worker + Container that host ReviewReply at
+  // https://reviewreply.<your-subdomain>.workers.dev. Deploy with
+  // scripts/deploy-cloudflare.ps1 (or `npx wrangler deploy` from this folder).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "reviewreply",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+
+  "containers": [
+    {
+      "class_name": "ReviewReplyApp",
+      // Built from the repo-root Dockerfile by `wrangler deploy` (Docker must be running).
+      "image": "../Dockerfile",
+      // basic = 1 GiB memory, 1/4 vCPU. One instance: all traffic goes to the same
+      // container; data lives in Neon Postgres, not on the (ephemeral) container disk.
+      "instance_type": "basic",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "APP", "class_name": "ReviewReplyApp" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ReviewReplyApp"] }],
+
+  // Non-secret settings. Secrets (GEMINI_API_KEY, DATABASE_URL, SECRET_KEY,
+  // GOOGLE_*) are set with `wrangler secret put`, never stored here.
+  "vars": {
+    "SECURE_COOKIES": "true"
+  }
+}

@@ -143,9 +143,71 @@ approval is the real gate, not cost.
 
 See [TESTING.md](TESTING.md).
 
-## Publishing with Cloudflare Tunnel
+## Hosting on Cloudflare (Containers)
 
-This puts the app running on your own PC on the internet through a
+This runs the app on Cloudflare itself, at a stable address like
+`https://reviewreply.<your-subdomain>.workers.dev`. Your PC can be off. A
+small Worker (`cloudflare/`) receives each request and forwards it to the
+app, which runs in a Docker container built from the repo's `Dockerfile`.
+Data lives in a Neon Postgres database, because a container's disk is wiped
+every time it sleeps or restarts.
+
+### What you need
+
+- **Workers Paid plan** ($5/month). Containers aren't on the free plan.
+  Enable it in the Cloudflare dashboard under Workers & Pages, Plans.
+- **A Neon project** (free) at [neon.tech](https://neon.tech). Copy its
+  connection string, which starts with `postgresql://` or `postgres://`.
+- **Docker running** (Docker Desktop or Rancher Desktop). `wrangler`
+  builds the image on your PC and uploads it.
+- **Node.js**, for `npx wrangler`.
+
+### Deploy
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\deploy-cloudflare.ps1
+```
+
+The script checks Docker, installs the Worker's packages, and runs
+`wrangler login` the first time. A browser tab opens and you click Allow.
+It then asks for each secret that isn't stored yet. Typed values are hidden
+and sent straight to Cloudflare; nothing is written to disk.
+
+| Secret | Needed | Value |
+|---|---|---|
+| `GEMINI_API_KEY` | yes | Your Gemini key |
+| `DATABASE_URL` | yes | The Neon connection string |
+| `SECRET_KEY` | yes | Leave empty and the script generates one |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | no | Only for Connect Google |
+
+Finally it runs `wrangler deploy` and prints the `workers.dev` address.
+After the very first deploy, allow a few minutes before the container
+answers. Sign up for an account on the new address; the Neon database
+starts empty. Tables are created automatically on first start.
+
+To redeploy after code changes, run the script again. To replace a stored
+secret, run it with `-SetSecrets`.
+
+### Good to know
+
+- **Cold starts.** The container stops after 15 idle minutes
+  (`sleepAfter` in `cloudflare/src/index.ts`). The next visit waits a few
+  seconds while it starts. Data is safe in Neon.
+- **Cost.** The $5 plan includes 25 GiB-hours of memory and 375 vCPU-minutes
+  a month. The app uses the `basic` instance (1 GiB, 1/4 vCPU), which covers
+  about 25 hours of running time before small extra charges apply.
+- **Google sign-in.** Set `GOOGLE_REDIRECT_URI` to
+  `https://reviewreply.<your-subdomain>.workers.dev/auth/google/callback` and
+  register the same URL on your Google OAuth client. Unlike the quick tunnel,
+  this address doesn't change.
+- **Logs.** Run `npx wrangler tail` in `cloudflare/`, or open the Worker in
+  the Cloudflare dashboard.
+- **Open sign-up.** Anyone who finds the address can create an account and
+  use your Gemini quota.
+
+## Publishing from your PC with a Cloudflare quick tunnel
+
+For quick sharing without hosting, this puts the app running on your own PC on the internet through a
 [Cloudflare quick tunnel](https://developers.cloudflare.com/tunnel/get-started/).
 It's free and needs no Cloudflare account or domain. The app keeps using
 the local SQLite database, so nothing is hosted elsewhere: **your PC has to
